@@ -13,12 +13,20 @@ var (
 	v = flag.Bool("v", false, "enable verbose logging")
 	m = flag.String("m", "GET", "HTTP method")
 
+	h = flag.Bool("h", false, "display help information")
+
 	insecure = flag.Bool("insecure", false, "allow insecure HTTPS connections")
 	timeout  = flag.String("timeout", "10s", "timeout for the http client")
 )
 
 func main() {
 	flag.Parse()
+
+	switch {
+	case *h:
+		flag.PrintDefaults()
+		os.Exit(0)
+	}
 
 	urlStr := flag.Arg(0)
 
@@ -71,7 +79,7 @@ func debug(a ...interface{}) {
 	if !*v {
 		return
 	}
-	fmt.Println(append([]interface{}{"DEBUG:"}, a...))
+	fmt.Println(append([]interface{}{"DEBUG:"}, a...)...)
 }
 func debugf(format string, a ...interface{}) {
 	if !*v {
