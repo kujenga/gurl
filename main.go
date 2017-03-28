@@ -4,14 +4,16 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"time"
 )
 
 var (
-	v = flag.Bool("v", false, "enable verbose logging")
-	m = flag.String("m", "GET", "HTTP method")
+	v      = flag.Bool("v", false, "enable verbose logging")
+	m      = flag.String("m", "GET", "HTTP method")
+	follow = flag.Bool("follow", false, "follow redirects")
 
 	h = flag.Bool("h", false, "display help information")
 
@@ -36,11 +38,13 @@ func main() {
 
 	req, err := http.NewRequest(*m, urlStr, nil)
 	check("invalid url:", err)
+	printf("> %+v\n", req)
 
 	resp, err := client().Do(req)
 	check("error performing request:", err)
+	printf("< %+v\n", resp)
 
-	fmt.Println("response:", resp)
+	io.Copy(os.Stdout, resp.Body)
 }
 
 func client() *http.Client {
@@ -55,12 +59,20 @@ func client() *http.Client {
 		}
 	}
 
-	return &http.Client{
+	client := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: tlsConfig,
 		},
 		Timeout: t,
 	}
+
+	if !*follow {
+		client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		}
+	}
+
+	return client
 }
 
 func check(msg string, err error) {
@@ -75,6 +87,13 @@ func nope(a ...interface{}) {
 	os.Exit(1)
 }
 
+func printf(format string, a ...interface{}) {
+	if !*v {
+		return
+	}
+	fmt.Printf(format, a...)
+}
+
 func debug(a ...interface{}) {
 	if !*v {
 		return
@@ -85,5 +104,5 @@ func debugf(format string, a ...interface{}) {
 	if !*v {
 		return
 	}
-	fmt.Printf("DEBUG: "+format, a...)
+	printf("DEBUG: "+format, a...)
 }
